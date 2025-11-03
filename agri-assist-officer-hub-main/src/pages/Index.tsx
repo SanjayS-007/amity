@@ -223,6 +223,395 @@ export default function Index() {
           </div>
         </div>
 
+        {/* Zone Analytics Overview - Dynamic Pie Chart Selector */}
+        <Card className="shadow-lg">
+          <CardHeader className="pb-4">
+            <CardTitle className="text-xl font-semibold flex items-center gap-2">
+              <Activity className="w-5 h-5 text-primary" />
+              Zone Analytics Overview
+            </CardTitle>
+            <CardDescription>Interactive insights for zone-level agricultural data</CardDescription>
+          </CardHeader>
+          <CardContent>
+            {/* Selector Bar */}
+            <Tabs defaultValue="crops" className="w-full">
+              <TabsList className="grid w-full grid-cols-3 h-auto p-1 bg-muted/50">
+                <TabsTrigger 
+                  value="crops" 
+                  className="flex flex-col items-center gap-2 py-4 px-6 data-[state=active]:bg-background data-[state=active]:shadow-md data-[state=active]:scale-105 transition-all duration-200"
+                >
+                  <Sprout className="w-6 h-6" />
+                  <div className="text-center">
+                    <p className="font-semibold text-sm">Crops by Type</p>
+                    <p className="text-xs text-muted-foreground">Distribution Analysis</p>
+                  </div>
+                </TabsTrigger>
+                <TabsTrigger 
+                  value="phases" 
+                  className="flex flex-col items-center gap-2 py-4 px-6 data-[state=active]:bg-background data-[state=active]:shadow-md data-[state=active]:scale-105 transition-all duration-200"
+                >
+                  <Activity className="w-6 h-6" />
+                  <div className="text-center">
+                    <p className="font-semibold text-sm">Phases Distribution</p>
+                    <p className="text-xs text-muted-foreground">Growth Stages</p>
+                  </div>
+                </TabsTrigger>
+                <TabsTrigger 
+                  value="health" 
+                  className="flex flex-col items-center gap-2 py-4 px-6 data-[state=active]:bg-background data-[state=active]:shadow-md data-[state=active]:scale-105 transition-all duration-200"
+                >
+                  <CheckCircle className="w-6 h-6" />
+                  <div className="text-center">
+                    <p className="font-semibold text-sm">Health Status</p>
+                    <p className="text-xs text-muted-foreground">Farm Conditions</p>
+                  </div>
+                </TabsTrigger>
+              </TabsList>
+
+              {/* Crops by Type Chart */}
+              <TabsContent value="crops" className="mt-6 space-y-6">
+                <div className="flex flex-col lg:flex-row items-center gap-8">
+                  {/* Pie Chart */}
+                  <div className="w-full lg:w-1/2 flex justify-center">
+                    <ResponsiveContainer width="100%" height={350}>
+                      <PieChart>
+                        <Pie
+                          data={[
+                            { name: 'Paddy', value: 1240, fill: '#10b981' },
+                            { name: 'Maize', value: 890, fill: '#f59e0b' },
+                            { name: 'Cotton', value: 650, fill: '#3b82f6' },
+                            { name: 'Wheat', value: 520, fill: '#8b5cf6' },
+                            { name: 'Pulses', value: 480, fill: '#ec4899' },
+                          ]}
+                          cx="50%"
+                          cy="50%"
+                          labelLine={false}
+                          label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
+                          outerRadius={120}
+                          fill="#8884d8"
+                          dataKey="value"
+                          animationBegin={0}
+                          animationDuration={800}
+                        >
+                          {[
+                            { name: 'Paddy', value: 1240, fill: '#10b981' },
+                            { name: 'Maize', value: 890, fill: '#f59e0b' },
+                            { name: 'Cotton', value: 650, fill: '#3b82f6' },
+                            { name: 'Wheat', value: 520, fill: '#8b5cf6' },
+                            { name: 'Pulses', value: 480, fill: '#ec4899' },
+                          ].map((entry, index) => (
+                            <Cell key={`cell-${index}`} fill={entry.fill} />
+                          ))}
+                        </Pie>
+                        <ChartTooltip 
+                          content={({ active, payload }) => {
+                            if (active && payload && payload.length) {
+                              return (
+                                <div className="bg-background border rounded-lg shadow-lg p-3">
+                                  <p className="font-semibold">{payload[0].name}</p>
+                                  <p className="text-sm text-muted-foreground">
+                                    {payload[0].value} hectares ({((payload[0].value as number / 3780) * 100).toFixed(1)}%)
+                                  </p>
+                                </div>
+                              );
+                            }
+                            return null;
+                          }}
+                        />
+                        <Legend 
+                          verticalAlign="bottom" 
+                          height={36}
+                          formatter={(value, entry: { value: number }) => (
+                            <span className="text-sm font-medium">
+                              {value}: {entry.value}ha ({((entry.value / 3780) * 100).toFixed(1)}%)
+                            </span>
+                          )}
+                        />
+                      </PieChart>
+                    </ResponsiveContainer>
+                  </div>
+
+                  {/* Details Panel */}
+                  <div className="w-full lg:w-1/2 space-y-4">
+                    <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-lg">
+                      <div className="flex items-start gap-3">
+                        <div className="p-2 bg-emerald-100 rounded">
+                          <TrendingUp className="w-5 h-5 text-emerald-600" />
+                        </div>
+                        <div>
+                          <p className="font-semibold text-emerald-900">Most Popular Crop</p>
+                          <p className="text-sm text-emerald-700 mt-1">
+                            <span className="font-bold">Paddy</span> - 1,240 hectares (33% of farmers)
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="space-y-3">
+                      <h4 className="font-semibold text-sm text-muted-foreground uppercase tracking-wide">Crop Breakdown</h4>
+                      {[
+                        { name: 'Paddy', acres: 1240, color: 'bg-emerald-500', farmers: 820 },
+                        { name: 'Maize', acres: 890, color: 'bg-amber-500', farmers: 595 },
+                        { name: 'Cotton', acres: 650, color: 'bg-blue-500', farmers: 435 },
+                        { name: 'Wheat', acres: 520, color: 'bg-purple-500', farmers: 348 },
+                        { name: 'Pulses', acres: 480, color: 'bg-pink-500', farmers: 252 },
+                      ].map((crop, idx) => (
+                        <div key={idx} className="flex items-center justify-between p-3 bg-muted/30 rounded-lg hover:bg-muted/50 transition-colors">
+                          <div className="flex items-center gap-3">
+                            <div className={cn("w-4 h-4 rounded", crop.color)} />
+                            <span className="font-medium">{crop.name}</span>
+                          </div>
+                          <div className="text-right">
+                            <p className="text-sm font-semibold">{crop.acres} ha</p>
+                            <p className="text-xs text-muted-foreground">{crop.farmers} farmers</p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+
+                    <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                      <p className="text-xs text-blue-700">
+                        <AlertCircle className="w-4 h-4 inline mr-1" />
+                        <span className="font-semibold">Insight:</span> Paddy cultivation increased by 8% compared to last season
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </TabsContent>
+
+              {/* Phases Distribution Chart */}
+              <TabsContent value="phases" className="mt-6 space-y-6">
+                <div className="flex flex-col lg:flex-row items-center gap-8">
+                  {/* Pie Chart */}
+                  <div className="w-full lg:w-1/2 flex justify-center">
+                    <ResponsiveContainer width="100%" height={350}>
+                      <PieChart>
+                        <Pie
+                          data={[
+                            { name: 'Sowing', value: 625, fill: '#fbbf24' },
+                            { name: 'Vegetative', value: 875, fill: '#10b981' },
+                            { name: 'Flowering', value: 500, fill: '#ec4899' },
+                            { name: 'Maturity', value: 525, fill: '#f97316' },
+                            { name: 'Harvest', value: 425, fill: '#8b5cf6' },
+                          ]}
+                          cx="50%"
+                          cy="50%"
+                          labelLine={false}
+                          label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
+                          outerRadius={120}
+                          fill="#8884d8"
+                          dataKey="value"
+                          animationBegin={0}
+                          animationDuration={800}
+                        >
+                          {[
+                            { name: 'Sowing', value: 625, fill: '#fbbf24' },
+                            { name: 'Vegetative', value: 875, fill: '#10b981' },
+                            { name: 'Flowering', value: 500, fill: '#ec4899' },
+                            { name: 'Maturity', value: 525, fill: '#f97316' },
+                            { name: 'Harvest', value: 425, fill: '#8b5cf6' },
+                          ].map((entry, index) => (
+                            <Cell key={`cell-${index}`} fill={entry.fill} />
+                          ))}
+                        </Pie>
+                        <ChartTooltip 
+                          content={({ active, payload }) => {
+                            if (active && payload && payload.length) {
+                              return (
+                                <div className="bg-background border rounded-lg shadow-lg p-3">
+                                  <p className="font-semibold">{payload[0].name}</p>
+                                  <p className="text-sm text-muted-foreground">
+                                    {payload[0].value} farmers ({((payload[0].value as number / 2950) * 100).toFixed(1)}%)
+                                  </p>
+                                </div>
+                              );
+                            }
+                            return null;
+                          }}
+                        />
+                        <Legend 
+                          verticalAlign="bottom" 
+                          height={36}
+                          formatter={(value, entry: { value: number }) => (
+                            <span className="text-sm font-medium">
+                              {value}: {entry.value} farmers ({((entry.value / 2950) * 100).toFixed(1)}%)
+                            </span>
+                          )}
+                        />
+                      </PieChart>
+                    </ResponsiveContainer>
+                  </div>
+
+                  {/* Details Panel */}
+                  <div className="w-full lg:w-1/2 space-y-4">
+                    <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
+                      <div className="flex items-start gap-3">
+                        <div className="p-2 bg-green-100 rounded">
+                          <Sprout className="w-5 h-5 text-green-600" />
+                        </div>
+                        <div>
+                          <p className="font-semibold text-green-900">Dominant Phase</p>
+                          <p className="text-sm text-green-700 mt-1">
+                            <span className="font-bold">Vegetative</span> - 875 farmers (30% of zone)
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="space-y-3">
+                      <h4 className="font-semibold text-sm text-muted-foreground uppercase tracking-wide">Phase Breakdown</h4>
+                      {[
+                        { name: 'Sowing', farmers: 625, color: 'bg-yellow-400', percentage: 21 },
+                        { name: 'Vegetative', farmers: 875, color: 'bg-green-500', percentage: 30 },
+                        { name: 'Flowering', farmers: 500, color: 'bg-pink-500', percentage: 17 },
+                        { name: 'Maturity', farmers: 525, color: 'bg-orange-500', percentage: 18 },
+                        { name: 'Harvest', farmers: 425, color: 'bg-purple-500', percentage: 14 },
+                      ].map((phase, idx) => (
+                        <div key={idx} className="flex items-center justify-between p-3 bg-muted/30 rounded-lg hover:bg-muted/50 transition-colors">
+                          <div className="flex items-center gap-3">
+                            <div className={cn("w-4 h-4 rounded", phase.color)} />
+                            <span className="font-medium">{phase.name}</span>
+                          </div>
+                          <div className="text-right">
+                            <p className="text-sm font-semibold">{phase.farmers} farmers</p>
+                            <p className="text-xs text-muted-foreground">{phase.percentage}%</p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+
+                    <div className="p-3 bg-orange-50 border border-orange-200 rounded-lg">
+                      <p className="text-xs text-orange-700">
+                        <AlertTriangle className="w-4 h-4 inline mr-1" />
+                        <span className="font-semibold">Alert:</span> Harvest phase delayed—12% farmers flagged for support
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </TabsContent>
+
+              {/* Health Status Chart */}
+              <TabsContent value="health" className="mt-6 space-y-6">
+                <div className="flex flex-col lg:flex-row items-center gap-8">
+                  {/* Pie Chart */}
+                  <div className="w-full lg:w-1/2 flex justify-center">
+                    <ResponsiveContainer width="100%" height={350}>
+                      <PieChart>
+                        <Pie
+                          data={[
+                            { name: 'Healthy', value: 1820, fill: '#10b981' },
+                            { name: 'Warning', value: 420, fill: '#f59e0b' },
+                            { name: 'Critical', value: 95, fill: '#ef4444' },
+                            { name: 'Under Review', value: 115, fill: '#6b7280' },
+                          ]}
+                          cx="50%"
+                          cy="50%"
+                          labelLine={false}
+                          label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
+                          outerRadius={120}
+                          fill="#8884d8"
+                          dataKey="value"
+                          animationBegin={0}
+                          animationDuration={800}
+                        >
+                          {[
+                            { name: 'Healthy', value: 1820, fill: '#10b981' },
+                            { name: 'Warning', value: 420, fill: '#f59e0b' },
+                            { name: 'Critical', value: 95, fill: '#ef4444' },
+                            { name: 'Under Review', value: 115, fill: '#6b7280' },
+                          ].map((entry, index) => (
+                            <Cell key={`cell-${index}`} fill={entry.fill} />
+                          ))}
+                        </Pie>
+                        <ChartTooltip 
+                          content={({ active, payload }) => {
+                            if (active && payload && payload.length) {
+                              return (
+                                <div className="bg-background border rounded-lg shadow-lg p-3">
+                                  <p className="font-semibold">{payload[0].name}</p>
+                                  <p className="text-sm text-muted-foreground">
+                                    {payload[0].value} farms ({((payload[0].value as number / 2450) * 100).toFixed(1)}%)
+                                  </p>
+                                </div>
+                              );
+                            }
+                            return null;
+                          }}
+                        />
+                        <Legend 
+                          verticalAlign="bottom" 
+                          height={36}
+                          formatter={(value, entry: { value: number }) => (
+                            <span className="text-sm font-medium">
+                              {value}: {entry.value} farms ({((entry.value / 2450) * 100).toFixed(1)}%)
+                            </span>
+                          )}
+                        />
+                      </PieChart>
+                    </ResponsiveContainer>
+                  </div>
+
+                  {/* Details Panel */}
+                  <div className="w-full lg:w-1/2 space-y-4">
+                    <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-lg">
+                      <div className="flex items-start gap-3">
+                        <div className="p-2 bg-emerald-100 rounded">
+                          <CheckCircle className="w-5 h-5 text-emerald-600" />
+                        </div>
+                        <div>
+                          <p className="font-semibold text-emerald-900">Overall Health Status</p>
+                          <p className="text-sm text-emerald-700 mt-1">
+                            <span className="font-bold">Healthy</span> - 1,820 farms (74% of zone)
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="space-y-3">
+                      <h4 className="font-semibold text-sm text-muted-foreground uppercase tracking-wide">Health Breakdown</h4>
+                      {[
+                        { name: 'Healthy', count: 1820, color: 'bg-emerald-500', percentage: 74, action: 'No action needed' },
+                        { name: 'Warning', count: 420, color: 'bg-amber-500', percentage: 17, action: 'Monitor closely' },
+                        { name: 'Critical', count: 95, color: 'bg-red-500', percentage: 4, action: 'Immediate attention' },
+                        { name: 'Under Review', count: 115, color: 'bg-gray-500', percentage: 5, action: 'Assessment pending' },
+                      ].map((status, idx) => (
+                        <div key={idx} className="flex items-center justify-between p-3 bg-muted/30 rounded-lg hover:bg-muted/50 transition-colors">
+                          <div className="flex items-center gap-3">
+                            <div className={cn("w-4 h-4 rounded", status.color)} />
+                            <div>
+                              <span className="font-medium block">{status.name}</span>
+                              <span className="text-xs text-muted-foreground">{status.action}</span>
+                            </div>
+                          </div>
+                          <div className="text-right">
+                            <p className="text-sm font-semibold">{status.count} farms</p>
+                            <p className="text-xs text-muted-foreground">{status.percentage}%</p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+
+                    <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
+                      <p className="text-xs text-red-700">
+                        <AlertTriangle className="w-4 h-4 inline mr-1" />
+                        <span className="font-semibold">Priority Alert:</span> 95 farms in critical condition require immediate field visits
+                      </p>
+                    </div>
+
+                    <Button 
+                      variant="outline" 
+                      className="w-full"
+                      onClick={() => navigate('/farmers?status=critical')}
+                    >
+                      <AlertTriangle className="w-4 h-4 mr-2" />
+                      View Critical Farms
+                    </Button>
+                  </div>
+                </div>
+              </TabsContent>
+            </Tabs>
+          </CardContent>
+        </Card>
 
       </main>
     </div>

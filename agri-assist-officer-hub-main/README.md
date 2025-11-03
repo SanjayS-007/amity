@@ -40,6 +40,37 @@ A clean, professional interface displaying **4 essential real-time metrics**:
 - Pending actions count
 - Quick actions: View List, Broadcast Alert
 
+### Zone Analytics Overview
+An interactive visual analytics section with **dynamic pie chart selector** placed below the KPI cards:
+
+#### Three Analysis Views:
+1. **Crops by Type**
+   - Pie chart showing crop distribution across the zone
+   - Data: Paddy (1,240 ha, 33%), Maize (890 ha), Cotton (650 ha), Wheat (520 ha), Pulses (480 ha)
+   - Detailed breakdown panel with farmer counts
+   - Insight: "Paddy cultivation increased by 8% compared to last season"
+
+2. **Phases Distribution**  
+   - Growth stage breakdown across all active cycles
+   - Data: Vegetative (875 farmers, 30%), Maturity (525, 18%), Sowing (625, 21%), Flowering (500, 17%), Harvest (425, 14%)
+   - Dominant phase indicator with contextual alerts
+   - Alert: "Harvest phase delayed—12% farmers flagged for support"
+
+3. **Health Status**
+   - Farm health condition overview
+   - Data: Healthy (1,820 farms, 74%), Warning (420, 17%), Critical (95, 4%), Under Review (115, 5%)
+   - Action-oriented breakdown (e.g., "Immediate attention", "Monitor closely")
+   - Priority alert: "95 farms in critical condition require immediate field visits"
+   - Quick navigation to critical farms list
+
+#### Interactive Features:
+- **Tab Selector**: Large, color-coded buttons with icons for easy switching
+- **Smooth Animations**: Chart transitions preserve orientation for clarity
+- **Rich Tooltips**: Hover to see exact segment details (count, percentage)
+- **Responsive Layout**: Side-by-side chart + details panel on desktop, stacked on mobile
+- **Contextual Insights**: Each view includes highlighted key findings and alerts
+- **Action Buttons**: Direct links to relevant sections (e.g., "View Critical Farms")
+
 ### Design Features
 - **Professional & Clean**: Business-appropriate interface, no flashy gradients
 - **Comfortable Spacing**: 6-unit gaps, generous padding for easy reading
@@ -47,6 +78,7 @@ A clean, professional interface displaying **4 essential real-time metrics**:
 - **Subtle Color Coding**: Left border accents (emerald/green/blue/red)
 - **Interactive Cards**: Click-to-navigate with hover effects
 - **Responsive Grid**: 4 columns → 2 columns → 1 column across devices
+- **Accessibility**: Chart segments use distinct colors and patterns for clarity
 
 ## Getting Started
 
