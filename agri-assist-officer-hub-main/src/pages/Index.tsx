@@ -1,3 +1,4 @@
+import React from "react";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { TopBar } from "@/components/layout/TopBar";
 import {
@@ -613,12 +614,525 @@ export default function Index() {
           </CardContent>
         </Card>
 
+        {/* Calendar Alerts & Weather - Split Panel Layout */}
+        <Card className="shadow-lg">
+          <CardHeader className="pb-4">
+            <CardTitle className="text-xl font-semibold flex items-center gap-2">
+              <Calendar className="w-5 h-5 text-primary" />
+              Calendar Alerts & Weather
+            </CardTitle>
+            <CardDescription>Monthly overview with weather forecasts and zone alerts</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <CalendarWeatherPanel navigate={navigate} />
+          </CardContent>
+        </Card>
+
       </main>
     </div>
   );
 }
 
 // ==================== COMPONENT DEFINITIONS ====================
+
+// Calendar Weather Panel Component - Split Layout
+const CalendarWeatherPanel = ({ navigate }: { navigate: (path: string) => void }) => {
+  const [selectedDate, setSelectedDate] = React.useState<Date>(new Date());
+  const [currentMonth, setCurrentMonth] = React.useState<Date>(new Date());
+
+  // Weather emoji mapping
+  const weatherEmojis: Record<string, string> = {
+    'sunny': '☀️',
+    'cloudy': '🌤️',
+    'rain': '🌦️',
+    'heavy-rain': '🌧️',
+    'storm': '⛈️',
+    'partly-cloudy': '⛅',
+  };
+
+  // Mock weather data for the month
+  const getWeatherForDate = (date: Date): string => {
+    const day = date.getDate();
+    const weatherTypes = ['sunny', 'cloudy', 'rain', 'partly-cloudy', 'heavy-rain'];
+    return weatherTypes[day % weatherTypes.length];
+  };
+
+  // Mock alerts data
+  const getAlertsForDate = (date: Date): Array<{ type: string; emoji: string; message: string }> => {
+    const day = date.getDate();
+    const alerts: Array<{ type: string; emoji: string; message: string }> = [];
+    
+    if (day % 5 === 0) {
+      alerts.push({ type: 'govt', emoji: '🏛️', message: 'Government subsidy application deadline approaching' });
+    }
+    if (day % 7 === 0) {
+      alerts.push({ type: 'pest', emoji: '🐛', message: 'Pest alert: Increased aphid activity reported in zone' });
+    }
+    if (day % 3 === 0) {
+      alerts.push({ type: 'market', emoji: '📈', message: 'Market price surge expected for wheat this week' });
+    }
+    if (day % 11 === 0) {
+      alerts.push({ type: 'scheme', emoji: '📅', message: 'New crop insurance scheme enrollment opens today' });
+    }
+    
+    return alerts;
+  };
+
+  // Get weather details for selected date
+  const getWeatherDetails = (date: Date) => {
+    const weather = getWeatherForDate(date);
+    const details: Record<string, { temp: string; rainfall: string; wind: string; humidity: string; impact: string; summary: string }> = {
+      'sunny': {
+        temp: '28-35°C',
+        rainfall: '0 mm',
+        wind: '12 km/h',
+        humidity: '45%',
+        impact: 'Ideal for irrigation activities',
+        summary: 'Clear sunny day with optimal farming conditions'
+      },
+      'cloudy': {
+        temp: '24-30°C',
+        rainfall: '0-2 mm',
+        wind: '15 km/h',
+        humidity: '65%',
+        impact: 'Good for fieldwork, monitor for rain',
+        summary: 'Partly cloudy with mild temperatures'
+      },
+      'rain': {
+        temp: '22-28°C',
+        rainfall: '15-25 mm',
+        wind: '20 km/h',
+        humidity: '85%',
+        impact: 'Delay spraying, good for rain-fed crops',
+        summary: 'Moderate rainfall expected throughout the day'
+      },
+      'heavy-rain': {
+        temp: '20-26°C',
+        rainfall: '40-60 mm',
+        wind: '25 km/h',
+        humidity: '90%',
+        impact: 'Avoid fieldwork, check drainage systems',
+        summary: 'Heavy rainfall with potential waterlogging risk'
+      },
+      'partly-cloudy': {
+        temp: '26-32°C',
+        rainfall: '0-5 mm',
+        wind: '18 km/h',
+        humidity: '60%',
+        impact: 'Comfortable conditions for all activities',
+        summary: 'Mixed sun and clouds, pleasant weather'
+      },
+      'storm': {
+        temp: '18-24°C',
+        rainfall: '70-100 mm',
+        wind: '40 km/h',
+        humidity: '95%',
+        impact: 'High alert: Secure crops and equipment',
+        summary: 'Severe weather warning - thunderstorms expected'
+      }
+    };
+    return details[weather] || details['sunny'];
+  };
+
+  // Generate calendar days
+  const getDaysInMonth = (date: Date) => {
+    const year = date.getFullYear();
+    const month = date.getMonth();
+    const firstDay = new Date(year, month, 1);
+    const lastDay = new Date(year, month + 1, 0);
+    const daysInMonth = lastDay.getDate();
+    const startingDayOfWeek = firstDay.getDay();
+
+    const days: (Date | null)[] = [];
+    
+    // Add empty cells for days before month starts
+    for (let i = 0; i < startingDayOfWeek; i++) {
+      days.push(null);
+    }
+    
+    // Add actual days
+    for (let day = 1; day <= daysInMonth; day++) {
+      days.push(new Date(year, month, day));
+    }
+    
+    return days;
+  };
+
+  const isToday = (date: Date | null): boolean => {
+    if (!date) return false;
+    const today = new Date();
+    return date.getDate() === today.getDate() &&
+           date.getMonth() === today.getMonth() &&
+           date.getFullYear() === today.getFullYear();
+  };
+
+  const isSelected = (date: Date | null): boolean => {
+    if (!date) return false;
+    return date.getDate() === selectedDate.getDate() &&
+           date.getMonth() === selectedDate.getMonth() &&
+           date.getFullYear() === selectedDate.getFullYear();
+  };
+
+  const days = getDaysInMonth(currentMonth);
+  const selectedWeather = getWeatherForDate(selectedDate);
+  const selectedAlerts = getAlertsForDate(selectedDate);
+  const weatherDetails = getWeatherDetails(selectedDate);
+
+  const previousMonth = () => {
+    setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1));
+  };
+
+  const nextMonth = () => {
+    setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1));
+  };
+
+  return (
+    <div className="flex flex-col lg:flex-row gap-6">
+      {/* Left 50% - Interactive Mini Calendar */}
+      <div className="flex-1 space-y-5">
+        {/* Month Navigation Header - Enhanced */}
+        <div className="flex items-center justify-between p-4 bg-gradient-to-r from-blue-50 to-cyan-50 dark:from-blue-950 dark:to-cyan-950 rounded-xl shadow-sm border border-blue-100 dark:border-blue-900">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-lg bg-blue-500 shadow-lg flex items-center justify-center transform rotate-3">
+              <Calendar className="w-5 h-5 text-white" />
+            </div>
+            <h3 className="text-xl font-bold bg-gradient-to-r from-blue-600 to-cyan-600 bg-clip-text text-transparent">
+              {currentMonth.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
+            </h3>
+          </div>
+          <div className="flex gap-2">
+            <Button 
+              size="sm" 
+              className="shadow-md hover:shadow-lg bg-white hover:bg-blue-50 text-blue-600 border-blue-200" 
+              onClick={previousMonth}
+            >
+              <TrendingDown className="w-4 h-4 rotate-90" />
+            </Button>
+            <Button 
+              size="sm" 
+              className="shadow-md hover:shadow-lg bg-white hover:bg-blue-50 text-blue-600 border-blue-200" 
+              onClick={nextMonth}
+            >
+              <TrendingUp className="w-4 h-4 rotate-90" />
+            </Button>
+          </div>
+        </div>
+
+        {/* Calendar Grid - Enhanced with 3D Look */}
+        <div className="border-2 border-slate-200 dark:border-slate-700 rounded-2xl p-5 bg-gradient-to-br from-white to-slate-50 dark:from-slate-900 dark:to-slate-800 shadow-xl">
+          {/* Weekday Headers */}
+          <div className="grid grid-cols-7 gap-2 mb-3">
+            {[
+              { day: 'Sun', color: 'text-red-500' },
+              { day: 'Mon', color: 'text-slate-600' },
+              { day: 'Tue', color: 'text-slate-600' },
+              { day: 'Wed', color: 'text-slate-600' },
+              { day: 'Thu', color: 'text-slate-600' },
+              { day: 'Fri', color: 'text-slate-600' },
+              { day: 'Sat', color: 'text-blue-500' }
+            ].map(({ day, color }) => (
+              <div key={day} className={cn("text-center text-xs font-bold uppercase tracking-wide py-2", color)}>
+                {day}
+              </div>
+            ))}
+          </div>
+
+          {/* Calendar Days - Enhanced 3D Cards */}
+          <div className="grid grid-cols-7 gap-2">
+            {days.map((date, index) => {
+              if (!date) {
+                return <div key={`empty-${index}`} className="aspect-square" />;
+              }
+
+              const alertCount = getAlertsForDate(date).length;
+              const weather = getWeatherForDate(date);
+              const isTodayDate = isToday(date);
+              const isSelectedDate = isSelected(date);
+
+              return (
+                <button
+                  key={index}
+                  onClick={() => setSelectedDate(date)}
+                  className={cn(
+                    "group aspect-square flex flex-col items-center justify-between p-2 rounded-xl transition-all duration-300",
+                    "transform hover:scale-110 hover:-translate-y-1 hover:shadow-2xl",
+                    // Default state - soft 3D card
+                    !isSelectedDate && !isTodayDate && "bg-gradient-to-br from-white to-slate-100 dark:from-slate-800 dark:to-slate-900 shadow-md hover:shadow-xl border-2 border-slate-200 dark:border-slate-700",
+                    // Today - glowing golden ring
+                    isTodayDate && !isSelectedDate && "bg-gradient-to-br from-amber-50 to-orange-50 dark:from-amber-900 dark:to-orange-900 shadow-lg ring-4 ring-amber-400 ring-offset-2 dark:ring-amber-600 border-2 border-amber-300",
+                    // Selected - vibrant blue 3D card
+                    isSelectedDate && "bg-gradient-to-br from-blue-500 to-cyan-500 dark:from-blue-600 dark:to-cyan-600 shadow-2xl scale-105 border-2 border-blue-600 dark:border-blue-400",
+                    // Hover effects
+                    "hover:rotate-1 active:scale-95"
+                  )}
+                >
+                  {/* Weather Emoji - Enhanced 3D effect */}
+                  <div className={cn(
+                    "text-2xl leading-none transform transition-transform duration-300 group-hover:scale-125 group-hover:rotate-12",
+                    isSelectedDate && "drop-shadow-lg filter brightness-110"
+                  )}>
+                    {weatherEmojis[weather]}
+                  </div>
+                  
+                  {/* Date Number - Enhanced Typography */}
+                  <span className={cn(
+                    "text-sm font-bold tracking-tight",
+                    isSelectedDate && "text-white drop-shadow-md",
+                    isTodayDate && !isSelectedDate && "text-orange-600 dark:text-orange-400 font-extrabold",
+                    !isSelectedDate && !isTodayDate && "text-slate-700 dark:text-slate-300"
+                  )}>
+                    {date.getDate()}
+                  </span>
+                  
+                  {/* Alert Badge - Enhanced 3D notification */}
+                  {alertCount > 0 && (
+                    <div className="flex items-center gap-1 -mt-1">
+                      <span className="text-base animate-bounce">🔔</span>
+                      <div className={cn(
+                        "h-5 w-5 rounded-full flex items-center justify-center text-xs font-bold shadow-lg",
+                        "transform transition-transform group-hover:scale-125",
+                        isSelectedDate 
+                          ? "bg-yellow-400 text-yellow-900 ring-2 ring-white" 
+                          : "bg-gradient-to-br from-red-500 to-pink-500 text-white ring-2 ring-red-200"
+                      )}>
+                        {alertCount}
+                      </div>
+                    </div>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Legend - Enhanced with colorful badges */}
+        <div className="flex flex-wrap gap-4 p-4 bg-gradient-to-r from-slate-50 to-slate-100 dark:from-slate-800 dark:to-slate-900 rounded-xl border border-slate-200 dark:border-slate-700">
+          <div className="flex items-center gap-2">
+            <div className="w-6 h-6 rounded-lg bg-gradient-to-br from-amber-400 to-orange-400 shadow-md ring-2 ring-amber-300" />
+            <span className="text-sm font-medium text-slate-700 dark:text-slate-300">Today</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="w-6 h-6 rounded-lg bg-gradient-to-br from-blue-500 to-cyan-500 shadow-md" />
+            <span className="text-sm font-medium text-slate-700 dark:text-slate-300">Selected</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="text-xl">🔔</span>
+            <span className="text-sm font-medium text-slate-700 dark:text-slate-300">Has Alerts</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="text-xl">☀️🌤️🌦️</span>
+            <span className="text-sm font-medium text-slate-700 dark:text-slate-300">Weather Forecast</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Right 50% - Selected Date Details - Enhanced */}
+      <div className="flex-1 space-y-5">
+        {/* Selected Date Header - Enhanced 3D Card */}
+        <div className="relative overflow-hidden rounded-2xl shadow-2xl border-2 border-blue-200 dark:border-blue-800">
+          <div className="absolute inset-0 bg-gradient-to-br from-blue-400 via-cyan-400 to-teal-400 dark:from-blue-600 dark:via-cyan-600 dark:to-teal-600 opacity-90"></div>
+          <div className="relative flex items-center gap-5 p-6">
+            <div className="flex-shrink-0">
+              <div className="w-20 h-20 rounded-2xl bg-white/20 backdrop-blur-sm shadow-2xl flex items-center justify-center transform hover:scale-110 hover:rotate-12 transition-all duration-300 border-2 border-white/30">
+                <span className="text-6xl drop-shadow-2xl">{weatherEmojis[selectedWeather]}</span>
+              </div>
+            </div>
+            <div className="flex-1">
+              <h3 className="text-2xl font-bold text-white drop-shadow-lg mb-1">
+                {selectedDate.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
+              </h3>
+              <p className="text-sm text-white/90 font-medium drop-shadow">{weatherDetails.summary}</p>
+            </div>
+          </div>
+        </div>
+
+        {/* Weather Report Card - Enhanced 3D Design */}
+        <div className="rounded-2xl shadow-xl border-2 border-slate-200 dark:border-slate-700 bg-gradient-to-br from-white to-slate-50 dark:from-slate-800 dark:to-slate-900 overflow-hidden">
+          <div className="bg-gradient-to-r from-sky-500 to-blue-500 px-5 py-4 border-b-2 border-sky-600">
+            <div className="flex items-center gap-2 text-white">
+              <div className="w-8 h-8 rounded-lg bg-white/20 backdrop-blur-sm flex items-center justify-center">
+                <Cloud className="w-5 h-5" />
+              </div>
+              <h4 className="text-lg font-bold drop-shadow">Weather Report</h4>
+            </div>
+          </div>
+          
+          <div className="p-5 space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              {/* Temperature */}
+              <div className="group p-4 rounded-xl bg-gradient-to-br from-orange-50 to-red-50 dark:from-orange-900/30 dark:to-red-900/30 border-2 border-orange-200 dark:border-orange-800 shadow-md hover:shadow-xl transition-all duration-300 hover:scale-105">
+                <div className="flex items-center gap-3">
+                  <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-orange-400 to-red-400 shadow-lg flex items-center justify-center transform group-hover:rotate-12 transition-transform">
+                    <span className="text-2xl drop-shadow">🌡️</span>
+                  </div>
+                  <div>
+                    <p className="text-xs font-bold text-orange-600 dark:text-orange-400 uppercase tracking-wide">Temperature</p>
+                    <p className="text-lg font-bold text-orange-900 dark:text-orange-300">{weatherDetails.temp}</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Rainfall */}
+              <div className="group p-4 rounded-xl bg-gradient-to-br from-blue-50 to-cyan-50 dark:from-blue-900/30 dark:to-cyan-900/30 border-2 border-blue-200 dark:border-blue-800 shadow-md hover:shadow-xl transition-all duration-300 hover:scale-105">
+                <div className="flex items-center gap-3">
+                  <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-400 to-cyan-400 shadow-lg flex items-center justify-center transform group-hover:rotate-12 transition-transform">
+                    <Droplets className="w-6 h-6 text-white drop-shadow" />
+                  </div>
+                  <div>
+                    <p className="text-xs font-bold text-blue-600 dark:text-blue-400 uppercase tracking-wide">Rainfall</p>
+                    <p className="text-lg font-bold text-blue-900 dark:text-blue-300">{weatherDetails.rainfall}</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Wind Speed */}
+              <div className="group p-4 rounded-xl bg-gradient-to-br from-sky-50 to-indigo-50 dark:from-sky-900/30 dark:to-indigo-900/30 border-2 border-sky-200 dark:border-sky-800 shadow-md hover:shadow-xl transition-all duration-300 hover:scale-105">
+                <div className="flex items-center gap-3">
+                  <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-sky-400 to-indigo-400 shadow-lg flex items-center justify-center transform group-hover:rotate-12 transition-transform">
+                    <Wind className="w-6 h-6 text-white drop-shadow" />
+                  </div>
+                  <div>
+                    <p className="text-xs font-bold text-sky-600 dark:text-sky-400 uppercase tracking-wide">Wind Speed</p>
+                    <p className="text-lg font-bold text-sky-900 dark:text-sky-300">{weatherDetails.wind}</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Humidity */}
+              <div className="group p-4 rounded-xl bg-gradient-to-br from-cyan-50 to-teal-50 dark:from-cyan-900/30 dark:to-teal-900/30 border-2 border-cyan-200 dark:border-cyan-800 shadow-md hover:shadow-xl transition-all duration-300 hover:scale-105">
+                <div className="flex items-center gap-3">
+                  <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-cyan-400 to-teal-400 shadow-lg flex items-center justify-center transform group-hover:rotate-12 transition-transform">
+                    <span className="text-2xl drop-shadow">💧</span>
+                  </div>
+                  <div>
+                    <p className="text-xs font-bold text-cyan-600 dark:text-cyan-400 uppercase tracking-wide">Humidity</p>
+                    <p className="text-lg font-bold text-cyan-900 dark:text-cyan-300">{weatherDetails.humidity}</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Crop Impact - Enhanced */}
+            <div className="p-4 rounded-xl bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-900/30 dark:to-emerald-900/30 border-2 border-green-200 dark:border-green-800 shadow-md">
+              <div className="flex items-start gap-3">
+                <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-green-400 to-emerald-400 shadow-lg flex items-center justify-center flex-shrink-0">
+                  <Sprout className="w-5 h-5 text-white drop-shadow" />
+                </div>
+                <div>
+                  <p className="text-xs font-bold text-green-600 dark:text-green-400 uppercase tracking-wide mb-1">Crop Impact Advisory</p>
+                  <p className="text-sm font-medium text-green-900 dark:text-green-300">{weatherDetails.impact}</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Alerts Card - Enhanced 3D Design */}
+        <div className="rounded-2xl shadow-xl border-2 border-slate-200 dark:border-slate-700 bg-gradient-to-br from-white to-slate-50 dark:from-slate-800 dark:to-slate-900 overflow-hidden">
+          <div className="bg-gradient-to-r from-amber-500 to-orange-500 px-5 py-4 border-b-2 border-amber-600">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2 text-white">
+                <div className="w-8 h-8 rounded-lg bg-white/20 backdrop-blur-sm flex items-center justify-center animate-pulse">
+                  <Bell className="w-5 h-5" />
+                </div>
+                <h4 className="text-lg font-bold drop-shadow">Alerts for this Date</h4>
+              </div>
+              {selectedAlerts.length > 0 && (
+                <div className="flex items-center gap-2 px-3 py-1.5 bg-white/20 backdrop-blur-sm rounded-full border border-white/30">
+                  <span className="text-xl animate-bounce">🔔</span>
+                  <span className="text-sm font-bold text-white drop-shadow">{selectedAlerts.length} Alert{selectedAlerts.length > 1 ? 's' : ''}</span>
+                </div>
+              )}
+            </div>
+          </div>
+          
+          <div className="p-5">
+            <ScrollArea className="max-h-80">
+              {selectedAlerts.length > 0 ? (
+                <div className="space-y-3">
+                  {selectedAlerts.map((alert, idx) => {
+                    const alertStyles: Record<string, { bg: string; border: string; textColor: string }> = {
+                      govt: { 
+                        bg: 'from-purple-50 to-indigo-50 dark:from-purple-900/30 dark:to-indigo-900/30', 
+                        border: 'border-purple-300 dark:border-purple-700',
+                        textColor: 'text-purple-700 dark:text-purple-300'
+                      },
+                      pest: { 
+                        bg: 'from-red-50 to-pink-50 dark:from-red-900/30 dark:to-pink-900/30', 
+                        border: 'border-red-300 dark:border-red-700',
+                        textColor: 'text-red-700 dark:text-red-300'
+                      },
+                      market: { 
+                        bg: 'from-green-50 to-emerald-50 dark:from-green-900/30 dark:to-emerald-900/30', 
+                        border: 'border-green-300 dark:border-green-700',
+                        textColor: 'text-green-700 dark:text-green-300'
+                      },
+                      scheme: { 
+                        bg: 'from-blue-50 to-cyan-50 dark:from-blue-900/30 dark:to-cyan-900/30', 
+                        border: 'border-blue-300 dark:border-blue-700',
+                        textColor: 'text-blue-700 dark:text-blue-300'
+                      }
+                    };
+                    
+                    const style = alertStyles[alert.type] || alertStyles.govt;
+                    
+                    return (
+                      <div 
+                        key={idx} 
+                        className={cn(
+                          "group flex items-start gap-4 p-4 rounded-xl shadow-md hover:shadow-xl transition-all duration-300 hover:scale-102 border-2",
+                          `bg-gradient-to-br ${style.bg} ${style.border}`
+                        )}
+                      >
+                        <div className="flex-shrink-0">
+                          <div className="w-14 h-14 rounded-xl bg-white/50 dark:bg-black/20 shadow-lg flex items-center justify-center transform group-hover:scale-110 group-hover:rotate-12 transition-transform">
+                            <span className="text-3xl drop-shadow">{alert.emoji}</span>
+                          </div>
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 mb-1">
+                            <Badge className={cn("text-xs font-bold uppercase", style.textColor, "bg-white/50 dark:bg-black/20 border-0")}>
+                              {alert.type} Alert
+                            </Badge>
+                          </div>
+                          <p className="text-sm font-medium text-slate-700 dark:text-slate-300 leading-relaxed">{alert.message}</p>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <div className="text-center py-12">
+                  <div className="w-24 h-24 mx-auto mb-4 rounded-full bg-gradient-to-br from-green-100 to-emerald-100 dark:from-green-900/30 dark:to-emerald-900/30 flex items-center justify-center shadow-lg">
+                    <span className="text-6xl animate-bounce">🎉</span>
+                  </div>
+                  <h5 className="text-lg font-bold text-slate-700 dark:text-slate-300 mb-2">No Alerts for this Date</h5>
+                  <p className="text-sm text-slate-500 dark:text-slate-400">All clear in your zone!</p>
+                  <div className="mt-4 inline-flex items-center gap-2 px-4 py-2 bg-green-100 dark:bg-green-900/30 rounded-full border border-green-300 dark:border-green-700">
+                    <span className="text-sm">✅</span>
+                    <span className="text-sm font-medium text-green-700 dark:text-green-400">Everything is on track</span>
+                  </div>
+                </div>
+              )}
+            </ScrollArea>
+
+            {selectedAlerts.length > 0 && (
+              <div className="mt-5 pt-4 border-t-2 border-slate-200 dark:border-slate-700">
+                <Button 
+                  className="w-full bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white font-bold shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105"
+                  onClick={() => navigate('/alerts')}
+                >
+                  <Bell className="w-4 h-4 mr-2" />
+                  View All Alerts
+                </Button>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
 
 // Enhanced KPI Card Component (First Row - Big Cards)
 interface EnhancedKPICardProps {

@@ -71,14 +71,122 @@ An interactive visual analytics section with **dynamic pie chart selector** plac
 - **Contextual Insights**: Each view includes highlighted key findings and alerts
 - **Action Buttons**: Direct links to relevant sections (e.g., "View Critical Farms")
 
+### Calendar Alerts & Weather
+A **split-panel interface** combining monthly calendar view with weather forecasts and zone alerts in a single, compact section:
+
+#### Left Panel: Interactive Mini Calendar (50%)
+- **Monthly Grid View**: Standard calendar layout with full month visibility
+- **Weather Emojis**: Each date displays forecasted weather (☀️ sunny, 🌤️ cloudy, 🌦️ rain, 🌧️ heavy rain, ⛈️ storm, ⛅ partly cloudy)
+- **Alert Badges**: 🔔 bell icon with circular count badge showing alerts per date
+- **Today Highlight**: Current day marked with bold ring/glow for quick reference
+- **Selection Interaction**: Click any date to load details in right panel
+- **Month Navigation**: Previous/next buttons to browse across months
+- **Visual Legend**: Clear indicators for today, selected date, and alert meanings
+
+#### Right Panel: Selected Date Details (50%)
+Dynamic panel that updates when a calendar date is clicked:
+
+**Weather Report Card:**
+- Large weather emoji header with date and 1-line forecast summary
+- Detailed metrics grid:
+  - 🌡️ Temperature range (e.g., "28-35°C")
+  - 💧 Rainfall amount (e.g., "15-25 mm")
+  - 🌬️ Wind speed (e.g., "20 km/h")
+  - 💧 Humidity percentage (e.g., "85%")
+- 🌱 Crop Impact Note: Context-aware farming guidance (e.g., "Delay spraying, good for rain-fed crops")
+
+**Alerts Card:**
+- Categorized alert list with emoji indicators:
+  - 🏛️ Government alerts (subsidies, policies)
+  - 📈 Market alerts (price surges, trends)
+  - 🐛 Pest alerts (activity warnings)
+  - 📅 Scheme alerts (enrollment deadlines)
+- Each alert shows type badge + 1-line summary
+- Empty state: "No alerts for this date 🎉" celebration message
+- Scrollable container if multiple alerts exceed panel height
+- "View All Alerts" action button at bottom
+
+#### Enhanced 3D Design Features:
+- **Modern Calendar Grid**:
+  - 3D card effect on each date cell with soft shadows
+  - Gradient backgrounds (white to slate) for depth
+  - Hover animations: Scale up (110%), lift (-translate-y), rotate slightly
+  - Today's date: Golden amber glow with ring-4 effect
+  - Selected date: Vibrant blue-to-cyan gradient with enhanced shadow
+  - Active transforms: Scale-95 on click for tactile feedback
+  
+- **Large Emoji Weather Icons**:
+  - 2XL size (text-2xl) for instant recognition
+  - Drop-shadow effects for 3D pop
+  - Hover scale (125%) and rotation (12deg) animations
+  - Brightness filter on selected dates
+
+- **Alert Badges**:
+  - 3D rounded badges with gradient backgrounds
+  - Red-to-pink gradient for unselected, yellow for selected
+  - Bounce animation on bell icon
+  - Ring borders (ring-2) for emphasis
+
+- **Month Header**:
+  - Gradient background (blue-50 to cyan-50)
+  - Rotated calendar icon with shadow
+  - Gradient text effect (blue-600 to cyan-600)
+  - Enhanced navigation buttons with shadow-md
+
+- **Colorful Legend**:
+  - Gradient badges for visual consistency
+  - Today: Amber-to-orange gradient with ring
+  - Selected: Blue-to-cyan gradient
+  - Multiple weather emoji examples
+
+#### Right Panel 3D Enhancements:
+**Selected Date Header:**
+- Full-width gradient overlay (blue-to-teal)
+- Floating weather emoji in frosted glass card (backdrop-blur)
+- White text with drop-shadow for readability
+- Hover effects on weather emoji (scale + rotate)
+
+**Weather Report Card:**
+- Colored header bar (sky-500 to blue-500)
+- Individual metric cards with unique gradients:
+  - Temperature: Orange-to-red gradient
+  - Rainfall: Blue-to-cyan gradient  
+  - Wind: Sky-to-indigo gradient
+  - Humidity: Cyan-to-teal gradient
+- Hover scale (105%) on each metric card
+- Icon rotation on hover (12deg)
+- Crop impact box with green gradient
+
+**Alerts Section:**
+- Amber-to-orange gradient header
+- Pulsing bell icon animation
+- Category-specific card colors:
+  - Government: Purple-to-indigo
+  - Pest: Red-to-pink
+  - Market: Green-to-emerald
+  - Scheme: Blue-to-cyan
+- Large emoji icons (3XL) in frosted glass containers
+- Empty state with bouncing celebration emoji
+- Gradient action button (hover scale 105%)
+
+#### Design Philosophy:
+- **Side-by-Side Context**: Always see calendar + details together—no navigation required
+- **Emoji-First Communication**: 3D emoji styling for instant visual comprehension
+- **Friendly Color Palette**: Soft gradients with high contrast text
+- **Smooth Transitions**: Transform animations (300ms) on all interactive elements
+- **Responsive Behavior**: Calendar collapses to top on mobile, details expand below
+- **Tactile Feedback**: Hover, scale, rotate, and shadow effects on every interaction
+- **Decision-Ready Layout**: Officers can compare days and plan fieldwork at a glance
+
 ### Design Features
-- **Professional & Clean**: Business-appropriate interface, no flashy gradients
-- **Comfortable Spacing**: 6-unit gaps, generous padding for easy reading
-- **High Contrast**: Dark text on light backgrounds for better readability
-- **Subtle Color Coding**: Left border accents (emerald/green/blue/red)
-- **Interactive Cards**: Click-to-navigate with hover effects
+- **Modern 3D Interface**: Cards with depth, shadows, and gradient overlays
+- **Comfortable Spacing**: 5-6 unit gaps, generous padding for easy reading
+- **High Contrast**: Dark text on light gradients for better readability
+- **Vibrant Color Coding**: Category-specific gradients throughout
+- **Interactive Animations**: Hover effects, scale transforms, rotations
 - **Responsive Grid**: 4 columns → 2 columns → 1 column across devices
 - **Accessibility**: Chart segments use distinct colors and patterns for clarity
+- **Dark Mode Support**: All gradients adapt with dark: variants
 
 ## Getting Started
 
