@@ -19,7 +19,9 @@ import {
   ChevronDown, ChevronRight, Search, Navigation, FileText, Camera,
   TrendingUp, TrendingDown, Activity, Mail, Bell, Edit, MapPinned,
   Clock, CheckCircle, XCircle, Info, Leaf, Users, Zap, ClipboardList,
-  Image as ImageIcon, Upload, Clock3 as History
+  Image as ImageIcon, Upload, Clock3 as History, Send, Megaphone,
+  Video, Printer, Share2, Target, Sliders, BarChart3, CheckSquare,
+  Square, Eye, Copy, Trash2, Home, ChevronRight as BreadcrumbArrow
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -239,7 +241,7 @@ const mockFarmers: Farmer[] = [
 // ==================== MAIN COMPONENT ====================
 
 export default function Farmers() {
-  const [viewMode, setViewMode] = React.useState<'list' | 'map'>('list');
+  const [viewMode, setViewMode] = React.useState<'list' | 'map' | 'segmentation'>('list');
   const [selectedFarmer, setSelectedFarmer] = React.useState<Farmer | null>(null);
   const [showProfile, setShowProfile] = React.useState(false);
   const [showFilters, setShowFilters] = React.useState(true);
@@ -247,6 +249,8 @@ export default function Farmers() {
   const [showSaveSegment, setShowSaveSegment] = React.useState(false);
   const [farmers, setFarmers] = React.useState<Farmer[]>(mockFarmers);
   const [filteredFarmers, setFilteredFarmers] = React.useState<Farmer[]>(mockFarmers);
+  const [selectedFarmers, setSelectedFarmers] = React.useState<Set<string>>(new Set());
+  const [showBulkActions, setShowBulkActions] = React.useState(false);
   
   const [filters, setFilters] = React.useState<Filters>({
     search: '',
@@ -377,7 +381,7 @@ export default function Farmers() {
                   variant={viewMode === 'list' ? 'default' : 'ghost'}
                   size="sm"
                   onClick={() => setViewMode('list')}
-                  className="rounded-r-none"
+                  className="rounded-r-none border-r-0"
                 >
                   <List className="w-4 h-4 mr-1" />
                   List
@@ -386,10 +390,19 @@ export default function Farmers() {
                   variant={viewMode === 'map' ? 'default' : 'ghost'}
                   size="sm"
                   onClick={() => setViewMode('map')}
-                  className="rounded-l-none"
+                  className="rounded-none border-r-0"
                 >
                   <MapIcon className="w-4 h-4 mr-1" />
                   Map
+                </Button>
+                <Button
+                  variant={viewMode === 'segmentation' ? 'default' : 'ghost'}
+                  size="sm"
+                  onClick={() => setViewMode('segmentation')}
+                  className="rounded-l-none"
+                >
+                  <Target className="w-4 h-4 mr-1" />
+                  Segmentation
                 </Button>
               </div>
 
@@ -424,10 +437,20 @@ export default function Farmers() {
                   farmers={filteredFarmers}
                   onViewProfile={handleViewProfile}
                 />
-              ) : (
+              ) : viewMode === 'map' ? (
                 <FarmersMapView
                   farmers={filteredFarmers}
                   onViewProfile={handleViewProfile}
+                />
+              ) : (
+                <SegmentationView
+                  farmers={filteredFarmers}
+                  allFarmers={farmers}
+                  filters={filters}
+                  setFilters={setFilters}
+                  onViewProfile={handleViewProfile}
+                  selectedFarmers={selectedFarmers}
+                  setSelectedFarmers={setSelectedFarmers}
                 />
               )}
             </div>
@@ -955,6 +978,698 @@ const FarmersMapView = ({ farmers, onViewProfile }: FarmersMapViewProps) => {
         </div>
       </div>
     </Card>
+  );
+};
+
+
+// ==================== SEGMENTATION VIEW COMPONENT ====================
+
+interface SegmentationViewProps {
+  farmers: Farmer[];
+  allFarmers: Farmer[];
+  filters: Filters;
+  setFilters: React.Dispatch<React.SetStateAction<Filters>>;
+  onViewProfile: (farmer: Farmer) => void;
+  selectedFarmers: Set<string>;
+  setSelectedFarmers: React.Dispatch<React.SetStateAction<Set<string>>>;
+}
+
+interface SavedSegment {
+  id: string;
+  name: string;
+  description: string;
+  criteria: Filters;
+  farmerCount: number;
+  createdAt: string;
+  color: string;
+}
+
+const SegmentationView = ({
+  farmers,
+  allFarmers,
+  filters,
+  setFilters,
+  onViewProfile,
+  selectedFarmers,
+  setSelectedFarmers
+}: SegmentationViewProps) => {
+  const [showBulkAlert, setShowBulkAlert] = React.useState(false);
+  const [showScheduleSession, setShowScheduleSession] = React.useState(false);
+  const [showExportOptions, setShowExportOptions] = React.useState(false);
+  const [alertMessage, setAlertMessage] = React.useState('');
+  const [alertTemplate, setAlertTemplate] = React.useState('custom');
+
+  // Mock saved segments
+  const [savedSegments, setSavedSegments] = React.useState<SavedSegment[]>([
+    {
+      id: 'S1',
+      name: 'Flowering Paddy Farmers',
+      description: 'All paddy farmers in flowering stage',
+      criteria: { ...filters, crops: ['Paddy'], status: ['active'] },
+      farmerCount: 23,
+      createdAt: '2024-10-15',
+      color: 'bg-blue-500'
+    },
+    {
+      id: 'S2',
+      name: 'High Risk Cotton',
+      description: 'Cotton farmers with pest risk >70%',
+      criteria: { ...filters, crops: ['Cotton'] },
+      farmerCount: 12,
+      createdAt: '2024-10-20',
+      color: 'bg-red-500'
+    }
+  ]);
+
+  const handleSelectAll = () => {
+    if (selectedFarmers.size === farmers.length) {
+      setSelectedFarmers(new Set());
+    } else {
+      setSelectedFarmers(new Set(farmers.map(f => f.id)));
+    }
+  };
+
+  const handleSelectFarmer = (farmerId: string) => {
+    const newSelected = new Set(selectedFarmers);
+    if (newSelected.has(farmerId)) {
+      newSelected.delete(farmerId);
+    } else {
+      newSelected.add(farmerId);
+    }
+    setSelectedFarmers(newSelected);
+  };
+
+  const getSegmentStats = () => {
+    const totalFarmers = farmers.length;
+    const avgHealth = farmers.reduce((acc, f) => acc + f.healthScore, 0) / totalFarmers || 0;
+    const cropBreakdown = farmers.reduce((acc, f) => {
+      acc[f.currentCrop] = (acc[f.currentCrop] || 0) + 1;
+      return acc;
+    }, {} as Record<string, number>);
+    
+    const stageBreakdown = farmers.reduce((acc, f) => {
+      acc[f.currentPhase] = (acc[f.currentPhase] || 0) + 1;
+      return acc;
+    }, {} as Record<string, number>);
+
+    return { totalFarmers, avgHealth, cropBreakdown, stageBreakdown };
+  };
+
+  const stats = getSegmentStats();
+
+  return (
+    <div className="space-y-6">
+      {/* Breadcrumb Navigation */}
+      <div className="flex items-center gap-2 text-sm text-muted-foreground">
+        <Home className="w-4 h-4" />
+        <BreadcrumbArrow className="w-4 h-4" />
+        <span>Farmer Management</span>
+        <BreadcrumbArrow className="w-4 h-4" />
+        <span className="text-foreground font-medium">Segmentation & Actions</span>
+      </div>
+
+      {/* Live Stats Summary Widget */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <Card className="p-5 border-2 bg-gradient-to-br from-blue-50 to-cyan-50 border-blue-200 shadow-lg">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-xs font-semibold text-blue-700 uppercase tracking-wide">Total Farmers</p>
+              <p className="text-3xl font-bold text-blue-900 mt-1">{stats.totalFarmers}</p>
+            </div>
+            <div className="w-14 h-14 rounded-full bg-blue-500 flex items-center justify-center shadow-md">
+              <Users className="w-7 h-7 text-white" />
+            </div>
+          </div>
+        </Card>
+
+        <Card className="p-5 border-2 bg-gradient-to-br from-green-50 to-emerald-50 border-green-200 shadow-lg">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-xs font-semibold text-green-700 uppercase tracking-wide">Avg Health</p>
+              <p className="text-3xl font-bold text-green-900 mt-1">{Math.round(stats.avgHealth)}</p>
+            </div>
+            <div className="w-14 h-14 rounded-full bg-green-500 flex items-center justify-center shadow-md">
+              <Activity className="w-7 h-7 text-white" />
+            </div>
+          </div>
+        </Card>
+
+        <Card className="p-5 border-2 bg-gradient-to-br from-purple-50 to-pink-50 border-purple-200 shadow-lg">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-xs font-semibold text-purple-700 uppercase tracking-wide">Selected</p>
+              <p className="text-3xl font-bold text-purple-900 mt-1">{selectedFarmers.size}</p>
+            </div>
+            <div className="w-14 h-14 rounded-full bg-purple-500 flex items-center justify-center shadow-md">
+              <CheckSquare className="w-7 h-7 text-white" />
+            </div>
+          </div>
+        </Card>
+
+        <Card className="p-5 border-2 bg-gradient-to-br from-orange-50 to-amber-50 border-orange-200 shadow-lg">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-xs font-semibold text-orange-700 uppercase tracking-wide">Active</p>
+              <p className="text-3xl font-bold text-orange-900 mt-1">
+                {farmers.filter(f => f.status === 'active').length}
+              </p>
+            </div>
+            <div className="w-14 h-14 rounded-full bg-orange-500 flex items-center justify-center shadow-md">
+              <CheckCircle className="w-7 h-7 text-white" />
+            </div>
+          </div>
+        </Card>
+      </div>
+
+      {/* Main Segmentation Layout */}
+      <div className="grid grid-cols-12 gap-6">
+        {/* Left Sidebar - Saved Segments */}
+        <div className="col-span-3">
+          <Card className="border-2 shadow-lg">
+            <CardHeader className="bg-gradient-to-r from-indigo-50 to-purple-50 border-b-2">
+              <CardTitle className="text-base flex items-center gap-2 text-indigo-900">
+                <div className="w-8 h-8 rounded-lg bg-indigo-500 flex items-center justify-center">
+                  <Target className="w-5 h-5 text-white" />
+                </div>
+                Saved Segments
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3 pt-4">
+              <Button className="w-full justify-start bg-gradient-to-r from-indigo-500 to-purple-500 hover:from-indigo-600 hover:to-purple-600 shadow-md">
+                <Plus className="w-4 h-4 mr-2" />
+                Create New Segment
+              </Button>
+              
+              <Separator />
+
+              <ScrollArea className="h-96">
+                {savedSegments.map(segment => (
+                  <Card key={segment.id} className="mb-3 p-4 cursor-pointer hover:shadow-lg transition-all border-2 hover:border-indigo-300 bg-gradient-to-br from-white to-gray-50">
+                    <div className="flex items-start gap-3">
+                      <div className={cn("w-4 h-4 rounded-full mt-1 shadow-md", segment.color)}></div>
+                      <div className="flex-1 min-w-0">
+                        <p className="font-bold text-sm truncate text-gray-900">{segment.name}</p>
+                        <p className="text-xs text-gray-600 mt-1">{segment.description}</p>
+                        <div className="flex items-center justify-between mt-3">
+                          <Badge className="bg-indigo-100 text-indigo-700 border-indigo-200 font-semibold">
+                            {segment.farmerCount} farmers
+                          </Badge>
+                          <div className="flex gap-1">
+                            <Button variant="ghost" size="sm" className="h-7 w-7 p-0 hover:bg-indigo-100">
+                              <Eye className="w-3.5 h-3.5 text-indigo-600" />
+                            </Button>
+                            <Button variant="ghost" size="sm" className="h-7 w-7 p-0 hover:bg-blue-100">
+                              <Copy className="w-3.5 h-3.5 text-blue-600" />
+                            </Button>
+                            <Button variant="ghost" size="sm" className="h-7 w-7 p-0 hover:bg-red-100">
+                              <Trash2 className="w-3.5 h-3.5 text-red-600" />
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </Card>
+                ))}
+              </ScrollArea>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Center - Segment Overview */}
+        <div className="col-span-6">
+          <Card className="border-2 shadow-lg">
+            <CardHeader className="bg-gradient-to-r from-teal-50 to-cyan-50 border-b-2">
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-base flex items-center gap-2 text-teal-900">
+                  <div className="w-8 h-8 rounded-lg bg-teal-500 flex items-center justify-center">
+                    <Sliders className="w-5 h-5 text-white" />
+                  </div>
+                  Segment Overview
+                </CardTitle>
+                <div className="flex items-center gap-2">
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={handleSelectAll}
+                    className="border-2 border-teal-300 text-teal-700 hover:bg-teal-50 font-semibold"
+                  >
+                    {selectedFarmers.size === farmers.length ? (
+                      <>
+                        <XCircle className="w-4 h-4 mr-1" />
+                        Deselect All
+                      </>
+                    ) : (
+                      <>
+                        <CheckSquare className="w-4 h-4 mr-1" />
+                        Select All
+                      </>
+                    )}
+                  </Button>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent className="pt-4">
+              {/* Quick Stats */}
+              <div className="grid grid-cols-3 gap-4 mb-4">
+                <div className="p-4 bg-gradient-to-br from-blue-50 to-cyan-50 rounded-xl border-2 border-blue-200">
+                  <p className="text-xs font-bold text-blue-900 mb-2 uppercase tracking-wide">🌾 Crop Distribution</p>
+                  <div className="space-y-2">
+                    {Object.entries(stats.cropBreakdown).slice(0, 3).map(([crop, count]) => (
+                      <div key={crop} className="flex items-center justify-between">
+                        <span className="text-sm font-medium text-gray-700">{crop}</span>
+                        <Badge className="bg-blue-600 text-white font-bold shadow-sm">{count}</Badge>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="p-4 bg-gradient-to-br from-green-50 to-emerald-50 rounded-xl border-2 border-green-200">
+                  <p className="text-xs font-bold text-green-900 mb-2 uppercase tracking-wide">📊 Stage Distribution</p>
+                  <div className="space-y-2">
+                    {Object.entries(stats.stageBreakdown).slice(0, 3).map(([stage, count]) => (
+                      <div key={stage} className="flex items-center justify-between">
+                        <span className="text-sm font-medium text-gray-700">{stage}</span>
+                        <Badge className="bg-green-600 text-white font-bold shadow-sm">{count}</Badge>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="p-4 bg-gradient-to-br from-orange-50 to-red-50 rounded-xl border-2 border-orange-200">
+                  <p className="text-xs font-bold text-orange-900 mb-2 uppercase tracking-wide">⚠️ Risk Levels</p>
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-bold text-green-700">✓ Low Risk</span>
+                      <Badge className="bg-green-600 text-white font-bold shadow-sm">
+                        {farmers.filter(f => f.healthScore >= 75).length}
+                      </Badge>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-bold text-orange-700">⚡ Medium</span>
+                      <Badge className="bg-orange-600 text-white font-bold shadow-sm">
+                        {farmers.filter(f => f.healthScore >= 50 && f.healthScore < 75).length}
+                      </Badge>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-bold text-red-700">🚨 High Risk</span>
+                      <Badge className="bg-red-600 text-white font-bold shadow-sm">
+                        {farmers.filter(f => f.healthScore < 50).length}
+                      </Badge>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Farmers Table */}
+              <ScrollArea className="h-96 rounded-lg border-2 border-gray-200">
+                <table className="w-full text-sm">
+                  <thead className="sticky top-0 bg-gradient-to-r from-gray-100 to-slate-100 border-b-2 border-gray-300">
+                    <tr>
+                      <th className="text-left p-3 w-10">
+                        <input
+                          type="checkbox"
+                          checked={selectedFarmers.size === farmers.length && farmers.length > 0}
+                          onChange={handleSelectAll}
+                          className="cursor-pointer w-4 h-4 accent-teal-500"
+                        />
+                      </th>
+                      <th className="text-left p-3 font-bold text-gray-700 uppercase text-xs tracking-wider">Farmer</th>
+                      <th className="text-left p-3 font-bold text-gray-700 uppercase text-xs tracking-wider">Crop</th>
+                      <th className="text-left p-3 font-bold text-gray-700 uppercase text-xs tracking-wider">Stage</th>
+                      <th className="text-left p-3 font-bold text-gray-700 uppercase text-xs tracking-wider">Health</th>
+                      <th className="text-left p-3 font-bold text-gray-700 uppercase text-xs tracking-wider">Village</th>
+                      <th className="text-left p-3 font-bold text-gray-700 uppercase text-xs tracking-wider">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {farmers.map((farmer, index) => (
+                      <tr 
+                        key={farmer.id} 
+                        className={cn(
+                          "border-b hover:bg-gradient-to-r hover:from-teal-50 hover:to-cyan-50 transition-all duration-200",
+                          index % 2 === 0 ? "bg-white" : "bg-gray-50/50",
+                          selectedFarmers.has(farmer.id) && "bg-teal-50/50 hover:from-teal-100 hover:to-cyan-100"
+                        )}
+                      >
+                        <td className="p-3">
+                          <input
+                            type="checkbox"
+                            checked={selectedFarmers.has(farmer.id)}
+                            onChange={() => handleSelectFarmer(farmer.id)}
+                            className="cursor-pointer w-4 h-4 accent-teal-500"
+                          />
+                        </td>
+                        <td className="p-3">
+                          <div className="flex items-center gap-2">
+                            <div className={cn(
+                              "w-3 h-3 rounded-full shadow-md",
+                              farmer.status === 'active' ? 'bg-green-500 ring-2 ring-green-200' :
+                              farmer.status === 'inactive' ? 'bg-yellow-500 ring-2 ring-yellow-200' :
+                              'bg-red-500 ring-2 ring-red-200'
+                            )}></div>
+                            <div>
+                              <p className="font-semibold text-gray-900">{farmer.name}</p>
+                              <p className="text-xs text-gray-500">{farmer.farmerId}</p>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="p-3">
+                          <div className="flex items-center gap-1">
+                            <Sprout className="w-4 h-4 text-green-600" />
+                            <span className="font-medium text-gray-700">{farmer.currentCrop}</span>
+                          </div>
+                        </td>
+                        <td className="p-3">
+                          <Badge className={cn(
+                            "text-xs font-bold shadow-sm",
+                            farmer.currentPhase === 'Sowing' ? 'bg-blue-500 text-white' :
+                            farmer.currentPhase === 'Vegetative' ? 'bg-green-500 text-white' :
+                            farmer.currentPhase === 'Flowering' ? 'bg-yellow-500 text-white' :
+                            farmer.currentPhase === 'Maturity' ? 'bg-orange-500 text-white' :
+                            'bg-purple-500 text-white'
+                          )}>
+                            {farmer.currentPhase}
+                          </Badge>
+                        </td>
+                        <td className="p-3">
+                          <div className="flex items-center gap-2">
+                            <div className={cn(
+                              "w-10 h-10 rounded-full flex items-center justify-center text-xs font-bold shadow-md border-2",
+                              farmer.healthScore >= 75 ? 'bg-green-500 text-white border-green-300' :
+                              farmer.healthScore >= 50 ? 'bg-yellow-500 text-white border-yellow-300' :
+                              'bg-red-500 text-white border-red-300'
+                            )}>
+                              {farmer.healthScore}
+                            </div>
+                          </div>
+                        </td>
+                        <td className="p-3">
+                          <span className="text-sm font-medium text-gray-700">{farmer.village}</span>
+                        </td>
+                        <td className="p-3">
+                          <div className="flex gap-1">
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-8 w-8 p-0 hover:bg-green-100 hover:text-green-700 transition-colors"
+                                  onClick={() => window.location.href = 'tel:' + farmer.phone}
+                                >
+                                  <Phone className="w-4 h-4" />
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>Call</TooltipContent>
+                            </Tooltip>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-8 w-8 p-0 hover:bg-blue-100 hover:text-blue-700 transition-colors"
+                                  onClick={() => onViewProfile(farmer)}
+                                >
+                                  <FileText className="w-4 h-4" />
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>View Profile</TooltipContent>
+                            </Tooltip>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </ScrollArea>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Right Sidebar - Bulk Actions */}
+        <div className="col-span-3">
+          <Card className="sticky top-6 border-2 shadow-lg">
+            <CardHeader className="bg-gradient-to-r from-purple-50 to-pink-50 border-b-2">
+              <CardTitle className="text-sm flex items-center gap-2 text-purple-900">
+                <div className="w-8 h-8 rounded-lg bg-purple-500 flex items-center justify-center">
+                  <Zap className="w-5 h-5 text-white" />
+                </div>
+                Bulk Actions
+                {selectedFarmers.size > 0 && (
+                  <Badge className="ml-auto bg-purple-600 text-white font-bold shadow-md">
+                    {selectedFarmers.size} selected
+                  </Badge>
+                )}
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3 pt-4">
+              {selectedFarmers.size === 0 ? (
+                <div className="text-center py-12 px-4">
+                  <div className="w-16 h-16 rounded-full bg-gradient-to-br from-purple-100 to-pink-100 flex items-center justify-center mx-auto mb-4">
+                    <CheckSquare className="w-8 h-8 text-purple-400" />
+                  </div>
+                  <p className="text-sm font-semibold text-gray-700 mb-1">No Farmers Selected</p>
+                  <p className="text-xs text-gray-500">Select farmers from the table to enable bulk actions</p>
+                </div>
+              ) : (
+                <>
+                  <Button
+                    className="w-full justify-start bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white shadow-md font-semibold"
+                    onClick={() => setShowBulkAlert(true)}
+                  >
+                    <Send className="w-4 h-4 mr-2" />
+                    Send Bulk Alert
+                  </Button>
+
+                  <Button 
+                    className="w-full justify-start bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white shadow-md font-semibold"
+                  >
+                    <Megaphone className="w-4 h-4 mr-2" />
+                    Broadcast Notification
+                  </Button>
+
+                  <Button
+                    className="w-full justify-start bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white shadow-md font-semibold"
+                    onClick={() => setShowScheduleSession(true)}
+                  >
+                    <Video className="w-4 h-4 mr-2" />
+                    Schedule Group Session
+                  </Button>
+
+                  <Separator className="my-3" />
+
+                  <Button
+                    className="w-full justify-start bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white shadow-md font-semibold"
+                    onClick={() => setShowExportOptions(true)}
+                  >
+                    <Printer className="w-4 h-4 mr-2" />
+                    Generate Report
+                  </Button>
+
+                  <Button className="w-full justify-start bg-gradient-to-r from-gray-500 to-gray-600 hover:from-gray-600 hover:to-gray-700 text-white shadow-md font-semibold">
+                    <Download className="w-4 h-4 mr-2" />
+                    Export Data
+                  </Button>
+
+                  <Button className="w-full justify-start bg-gradient-to-r from-teal-500 to-teal-600 hover:from-teal-600 hover:to-teal-700 text-white shadow-md font-semibold">
+                    <Share2 className="w-4 h-4 mr-2" />
+                    Share Segment
+                  </Button>
+
+                  <Separator className="my-3" />
+
+                  <div className="p-4 bg-gradient-to-br from-indigo-50 to-purple-50 rounded-xl border-2 border-indigo-200 shadow-md">
+                    <p className="font-bold text-indigo-900 mb-3 text-sm uppercase tracking-wide">📊 Quick Stats</p>
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between p-2 bg-white/70 rounded-lg">
+                        <span className="text-xs font-semibold text-gray-700">Avg Health:</span>
+                        <Badge className="bg-indigo-600 text-white font-bold">
+                          {Math.round(
+                            farmers.filter(f => selectedFarmers.has(f.id))
+                              .reduce((acc, f) => acc + f.healthScore, 0) / selectedFarmers.size || 0
+                          )}
+                        </Badge>
+                      </div>
+                      <div className="flex items-center justify-between p-2 bg-white/70 rounded-lg">
+                        <span className="text-xs font-semibold text-gray-700">Active Status:</span>
+                        <Badge className="bg-green-600 text-white font-bold">
+                          {farmers.filter(f => selectedFarmers.has(f.id) && f.status === 'active').length}
+                        </Badge>
+                      </div>
+                      <div className="flex items-center justify-between p-2 bg-white/70 rounded-lg">
+                        <span className="text-xs font-semibold text-gray-700">Total Area:</span>
+                        <Badge className="bg-blue-600 text-white font-bold">
+                          {farmers.filter(f => selectedFarmers.has(f.id))
+                            .reduce((acc, f) => acc + f.fieldSize, 0).toFixed(1)} acres
+                        </Badge>
+                      </div>
+                    </div>
+                  </div>
+                </>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+
+      {/* Bulk Alert Dialog */}
+      {showBulkAlert && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <Card className="w-full max-w-2xl border-2 shadow-2xl">
+            <CardHeader className="bg-gradient-to-r from-blue-50 to-cyan-50 border-b-2">
+              <CardTitle className="flex items-center justify-between text-blue-900">
+                <div className="flex items-center gap-2">
+                  <div className="w-10 h-10 rounded-lg bg-blue-500 flex items-center justify-center">
+                    <Send className="w-5 h-5 text-white" />
+                  </div>
+                  <span className="text-lg font-bold">Send Bulk Alert</span>
+                </div>
+                <Button variant="ghost" size="sm" onClick={() => setShowBulkAlert(false)} className="hover:bg-blue-100">
+                  <XCircle className="w-5 h-5" />
+                </Button>
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-5 pt-6">
+              <div>
+                <label className="text-sm font-bold mb-2 block text-gray-700 uppercase tracking-wide">Alert Template</label>
+                <Select value={alertTemplate} onValueChange={setAlertTemplate}>
+                  <SelectTrigger className="border-2 h-11 font-medium">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="custom">📝 Custom Message</SelectItem>
+                    <SelectItem value="weather">🌦️ Weather Warning</SelectItem>
+                    <SelectItem value="pest">🐛 Pest Outbreak Alert</SelectItem>
+                    <SelectItem value="irrigation">💧 Irrigation Schedule</SelectItem>
+                    <SelectItem value="subsidy">💰 Subsidy Information</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div>
+                <label className="text-sm font-bold mb-2 block text-gray-700 uppercase tracking-wide">Message</label>
+                <Textarea
+                  placeholder="Type your message here..."
+                  value={alertMessage}
+                  onChange={(e) => setAlertMessage(e.target.value)}
+                  rows={6}
+                  className="border-2 font-medium resize-none"
+                />
+                <div className="flex items-center justify-between mt-2">
+                  <p className="text-xs text-gray-600 font-medium">
+                    📤 Will be sent to <span className="font-bold text-blue-600">{selectedFarmers.size}</span> farmers
+                  </p>
+                  <Badge className="bg-blue-100 text-blue-700 border-blue-300 font-bold">
+                    {alertMessage.length} characters
+                  </Badge>
+                </div>
+              </div>
+
+              <div className="p-4 bg-gradient-to-r from-gray-50 to-slate-50 rounded-lg border-2">
+                <p className="text-sm font-bold text-gray-700 mb-3 uppercase tracking-wide">📬 Delivery Method</p>
+                <div className="space-y-2">
+                  <div className="flex items-center gap-3 p-2 hover:bg-white rounded transition-colors">
+                    <input type="checkbox" id="sendSMS" defaultChecked className="w-4 h-4 accent-blue-500" />
+                    <label htmlFor="sendSMS" className="text-sm font-medium text-gray-700 cursor-pointer flex-1">
+                      💬 Send as SMS
+                    </label>
+                  </div>
+                  <div className="flex items-center gap-3 p-2 hover:bg-white rounded transition-colors">
+                    <input type="checkbox" id="sendPush" defaultChecked className="w-4 h-4 accent-blue-500" />
+                    <label htmlFor="sendPush" className="text-sm font-medium text-gray-700 cursor-pointer flex-1">
+                      🔔 Send as Push Notification
+                    </label>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex gap-3 justify-end pt-2">
+                <Button variant="outline" onClick={() => setShowBulkAlert(false)} className="border-2 font-semibold">
+                  Cancel
+                </Button>
+                <Button className="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 shadow-lg font-bold">
+                  <Send className="w-4 h-4 mr-2" />
+                  Send Now
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      {/* Schedule Session Dialog */}
+      {showScheduleSession && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <Card className="w-full max-w-lg border-2 shadow-2xl">
+            <CardHeader className="bg-gradient-to-r from-purple-50 to-pink-50 border-b-2">
+              <CardTitle className="flex items-center justify-between text-purple-900">
+                <div className="flex items-center gap-2">
+                  <div className="w-10 h-10 rounded-lg bg-purple-500 flex items-center justify-center">
+                    <Video className="w-5 h-5 text-white" />
+                  </div>
+                  <span className="text-lg font-bold">Schedule Group Session</span>
+                </div>
+                <Button variant="ghost" size="sm" onClick={() => setShowScheduleSession(false)} className="hover:bg-purple-100">
+                  <XCircle className="w-5 h-5" />
+                </Button>
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-5 pt-6">
+              <div>
+                <label className="text-sm font-bold mb-2 block text-gray-700 uppercase tracking-wide">Session Title</label>
+                <Input placeholder="e.g., Pest Management Training" className="border-2 h-11 font-medium" />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="text-sm font-bold mb-2 block text-gray-700 uppercase tracking-wide">📅 Date</label>
+                  <Input type="date" className="border-2 h-11 font-medium" />
+                </div>
+                <div>
+                  <label className="text-sm font-bold mb-2 block text-gray-700 uppercase tracking-wide">⏰ Time</label>
+                  <Input type="time" className="border-2 h-11 font-medium" />
+                </div>
+              </div>
+
+              <div>
+                <label className="text-sm font-bold mb-2 block text-gray-700 uppercase tracking-wide">Platform</label>
+                <Select defaultValue="zoom">
+                  <SelectTrigger className="border-2 h-11 font-medium">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="zoom">📹 Zoom</SelectItem>
+                    <SelectItem value="meet">🎥 Google Meet</SelectItem>
+                    <SelectItem value="teams">💼 Microsoft Teams</SelectItem>
+                    <SelectItem value="inapp">📱 In-App Video Call</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div>
+                <label className="text-sm font-bold mb-2 block text-gray-700 uppercase tracking-wide">🔗 Meeting Link (Optional)</label>
+                <Input placeholder="https://..." className="border-2 h-11 font-medium" />
+              </div>
+
+              <div className="p-4 bg-gradient-to-r from-purple-50 to-pink-50 rounded-lg border-2 border-purple-200">
+                <p className="text-xs font-semibold text-purple-900">
+                  👥 This session will be scheduled for <span className="font-bold text-purple-700">{selectedFarmers.size}</span> selected farmers
+                </p>
+              </div>
+
+              <div className="flex gap-3 justify-end pt-2">
+                <Button variant="outline" onClick={() => setShowScheduleSession(false)} className="border-2 font-semibold">
+                  Cancel
+                </Button>
+                <Button className="bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 shadow-lg font-bold">
+                  <Calendar className="w-4 h-4 mr-2" />
+                  Schedule & Notify
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+    </div>
   );
 };
 

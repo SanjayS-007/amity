@@ -117,7 +117,7 @@ export default function Index() {
             <div>
               <h2 className="text-xl font-semibold text-foreground flex items-center gap-2">
                 <Activity className="w-5 h-5 text-primary" />
-                Zone Overview
+                Zone Summary
               </h2>
               <p className="text-sm text-muted-foreground mt-1">Real-time metrics and key performance indicators</p>
             </div>
