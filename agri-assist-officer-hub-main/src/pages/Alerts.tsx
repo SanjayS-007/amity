@@ -35,13 +35,21 @@ const alerts = [
   },
 ];
 
+type AlertFormValues = {
+  title?: string;
+  place?: string;
+  intensity?: string;
+  color?: "red" | "orange" | "yellow" | "green";
+  message?: string;
+};
+
 export default function Alerts() {
   const [showForm, setShowForm] = React.useState(false);
   const { toast } = useToast();
 
-  const { register, handleSubmit, reset } = useForm();
+  const { register, handleSubmit, reset } = useForm<AlertFormValues>();
 
-  async function onSubmit(values: any) {
+  async function onSubmit(values: AlertFormValues) {
     try {
       await createAlert({
         title: values.title || "Untitled Alert",

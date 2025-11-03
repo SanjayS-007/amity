@@ -1,10 +1,28 @@
 import { Sidebar } from "@/components/layout/Sidebar";
 import { TopBar } from "@/components/layout/TopBar";
-import { StatsCard } from "@/components/dashboard/StatsCard";
-import { WeatherWidget } from "@/components/dashboard/WeatherWidget";
-import { CropHealthChart } from "@/components/dashboard/CropHealthChart";
-import { Users, Sprout, AlertTriangle, CheckCircle } from "lucide-react";
+import {
+  Users,
+  Sprout,
+  AlertTriangle,
+  CheckCircle,
+  Cloud,
+  CloudRain,
+  Sun,
+  Wind,
+  LucideIcon,
+} from "lucide-react";
 import { Card } from "@/components/ui/card";
+import { cn } from "@/lib/utils";
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+  Legend,
+} from "recharts";
 
 export default function Index() {
   return (
@@ -94,3 +112,127 @@ export default function Index() {
     </div>
   );
 }
+
+
+  interface StatsCardProps {
+    title: string;
+    value: string | number;
+    change?: string;
+    changeType?: "positive" | "negative" | "neutral";
+    icon: LucideIcon;
+    variant?: "primary" | "secondary" | "accent" | "default";
+  }
+
+  const StatsCard = ({
+    title,
+    value,
+    change,
+    changeType = "neutral",
+    icon: Icon,
+    variant = "default",
+  }: StatsCardProps) => {
+    const variantStyles = {
+      primary: "border-primary/20 bg-primary/5",
+      secondary: "border-secondary/20 bg-secondary/5",
+      accent: "border-accent/20 bg-accent/5",
+      default: "border-border bg-card",
+    } as const;
+
+    const iconStyles = {
+      primary: "bg-primary text-primary-foreground",
+      secondary: "bg-secondary text-secondary-foreground",
+      accent: "bg-accent text-accent-foreground",
+      default: "bg-muted text-foreground",
+    } as const;
+
+    return (
+      <Card className={cn("p-6 transition-smooth hover:shadow-md", variantStyles[variant])}>
+        <div className="flex items-start justify-between">
+          <div className="space-y-2">
+            <p className="text-sm font-medium text-muted-foreground">{title}</p>
+            <p className="text-3xl font-bold">{value}</p>
+            {change && (
+              <p
+                className={cn(
+                  "text-sm font-medium",
+                  changeType === "positive" && "text-success",
+                  changeType === "negative" && "text-destructive",
+                  changeType === "neutral" && "text-muted-foreground"
+                )}
+              >
+                {change}
+              </p>
+            )}
+          </div>
+          <div className={cn("w-12 h-12 rounded-lg flex items-center justify-center", iconStyles[variant])}>
+            <Icon className="w-6 h-6" />
+          </div>
+        </div>
+      </Card>
+    );
+  };
+
+  const cropHealthData = [
+    { crop: "Rice", healthy: 85, warning: 12, critical: 3 },
+    { crop: "Wheat", healthy: 78, warning: 18, critical: 4 },
+    { crop: "Cotton", healthy: 92, warning: 6, critical: 2 },
+    { crop: "Sugarcane", healthy: 88, warning: 9, critical: 3 },
+    { crop: "Pulses", healthy: 81, warning: 15, critical: 4 },
+  ];
+
+  const CropHealthChart = () => (
+    <Card className="p-6">
+      <h3 className="text-lg font-semibold mb-4">Crop Health Distribution</h3>
+      <ResponsiveContainer width="100%" height={300}>
+        <BarChart data={cropHealthData}>
+          <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+          <XAxis dataKey="crop" className="text-xs" />
+          <YAxis className="text-xs" />
+          <Tooltip
+            contentStyle={{
+              backgroundColor: "hsl(var(--card))",
+              border: "1px solid hsl(var(--border))",
+              borderRadius: "8px",
+            }}
+          />
+          <Legend />
+          <Bar dataKey="healthy" fill="hsl(var(--success))" radius={[4, 4, 0, 0]} />
+          <Bar dataKey="warning" fill="hsl(var(--warning))" radius={[4, 4, 0, 0]} />
+          <Bar dataKey="critical" fill="hsl(var(--destructive))" radius={[4, 4, 0, 0]} />
+        </BarChart>
+      </ResponsiveContainer>
+    </Card>
+  );
+
+  const weatherData = [
+    { day: "Mon", temp: 28, icon: Sun, condition: "Sunny" },
+    { day: "Tue", temp: 26, icon: Cloud, condition: "Cloudy" },
+    { day: "Wed", temp: 24, icon: CloudRain, condition: "Rain" },
+    { day: "Thu", temp: 27, icon: Sun, condition: "Sunny" },
+    { day: "Fri", temp: 29, icon: Sun, condition: "Sunny" },
+  ];
+
+  const WeatherWidget = () => (
+    <Card className="p-6">
+      <div className="flex items-center justify-between mb-4">
+        <h3 className="text-lg font-semibold">7-Day Weather</h3>
+        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+          <Wind className="w-4 h-4" />
+          <span>12 km/h</span>
+        </div>
+      </div>
+
+      <div className="space-y-3">
+        {weatherData.map((day) => (
+          <div key={day.day} className="flex items-center justify-between py-2 border-b last:border-0">
+            <span className="text-sm font-medium w-12">{day.day}</span>
+            <div className="flex items-center gap-2 flex-1">
+              <day.icon className="w-5 h-5 text-secondary" />
+              <span className="text-sm text-muted-foreground">{day.condition}</span>
+            </div>
+            <span className="text-lg font-semibold">{day.temp}°C</span>
+          </div>
+        ))}
+      </div>
+    </Card>
+  );
